@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "SignalMessageDumper": {
+      "commandName": "Project",
+      "commandLineArgs": "--rootPath C:\\Users\\grant\\AppData\\Roaming\\Signal\\"
+    },
+    "cmdline test": {
+      "commandName": "Project",
+      "commandLineArgs": "delay 5"
+    }
+  }
+}

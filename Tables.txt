@@ -1,0 +1,415 @@
+sqlite_stat1
+CREATE TABLE sqlite_stat1(tbl,idx,stat)
+
+sqlite_stat4
+CREATE TABLE sqlite_stat4(tbl,idx,neq,nlt,ndlt,sample)
+
+conversations
+CREATE TABLE conversations(
+        id STRING PRIMARY KEY ASC,
+        json TEXT,
+
+        active_at INTEGER,
+        type STRING,
+        members TEXT,
+        name TEXT,
+        profileName TEXT,
+      profileFamilyName TEXT,
+      profileFullName TEXT,
+      e164 TEXT,
+      serviceId TEXT,
+      groupId TEXT,
+      profileLastFetchedAt INTEGER)
+
+identityKeys
+CREATE TABLE identityKeys(
+        id STRING PRIMARY KEY ASC,
+        json TEXT
+      )
+
+items
+CREATE TABLE items(
+        id STRING PRIMARY KEY ASC,
+        json TEXT
+      )
+
+sessions
+CREATE TABLE sessions(
+        id TEXT PRIMARY KEY,
+        conversationId TEXT,
+        json TEXT
+      , ourServiceId STRING, serviceId STRING)
+
+attachment_downloads
+CREATE TABLE attachment_downloads(
+        id STRING primary key,
+        timestamp INTEGER,
+        pending INTEGER,
+        json TEXT
+      )
+
+sticker_packs
+CREATE TABLE sticker_packs(
+        id TEXT PRIMARY KEY,
+        key TEXT NOT NULL,
+
+        author STRING,
+        coverStickerId INTEGER,
+        createdAt INTEGER,
+        downloadAttempts INTEGER,
+        installedAt INTEGER,
+        lastUsed INTEGER,
+        status STRING,
+        stickerCount INTEGER,
+        title STRING
+      , attemptedStatus STRING, position INTEGER DEFAULT 0 NOT NULL, storageID STRING, storageVersion INTEGER, storageUnknownFields BLOB, storageNeedsSync
+      INTEGER DEFAULT 0 NOT NULL)
+
+stickers
+CREATE TABLE stickers(
+        id INTEGER NOT NULL,
+        packId TEXT NOT NULL,
+
+        emoji STRING,
+        height INTEGER,
+        isCoverOnly INTEGER,
+        lastUsed INTEGER,
+        path STRING,
+        width INTEGER,
+
+        PRIMARY KEY (id, packId),
+        CONSTRAINT stickers_fk
+          FOREIGN KEY (packId)
+          REFERENCES sticker_packs(id)
+          ON DELETE CASCADE
+      )
+
+sticker_references
+CREATE TABLE sticker_references(
+        messageId STRING,
+        packId TEXT,
+        CONSTRAINT sticker_references_fk
+          FOREIGN KEY(packId)
+          REFERENCES sticker_packs(id)
+          ON DELETE CASCADE
+      )
+
+emojis
+CREATE TABLE emojis(
+        shortName TEXT PRIMARY KEY,
+        lastUsage INTEGER
+      )
+
+messages
+CREATE TABLE messages(
+        rowid INTEGER PRIMARY KEY ASC,
+        id STRING UNIQUE,
+        json TEXT,
+        readStatus INTEGER,
+        expires_at INTEGER,
+        sent_at INTEGER,
+        schemaVersion INTEGER,
+        conversationId STRING,
+        received_at INTEGER,
+        source STRING,
+        hasAttachments INTEGER,
+        hasFileAttachments INTEGER,
+        hasVisualMediaAttachments INTEGER,
+        expireTimer INTEGER,
+        expirationStartTimestamp INTEGER,
+        type STRING,
+        body TEXT,
+        messageTimer INTEGER,
+        messageTimerStart INTEGER,
+        messageTimerExpiresAt INTEGER,
+        isErased INTEGER,
+        isViewOnce INTEGER,
+        sourceServiceId TEXT, serverGuid STRING NULL, sourceDevice INTEGER, storyId STRING, isStory INTEGER
+        GENERATED ALWAYS AS (type IS 'story'), isChangeCreatedByUs INTEGER NOT NULL DEFAULT 0, isTimerChangeFromSync INTEGER
+        GENERATED ALWAYS AS (
+          json_extract(json, '$.expirationTimerUpdate.fromSync') IS 1
+        ), seenStatus NUMBER default 0, storyDistributionListId STRING, expiresAt INT
+        GENERATED ALWAYS
+        AS (ifnull(
+          expirationStartTimestamp + (expireTimer * 1000),
+          9007199254740991
+        )), shouldAffectActivity INTEGER
+        GENERATED ALWAYS AS (
+          type IS NULL
+          OR
+          type NOT IN (
+            'change-number-notification',
+            'contact-removed-notification',
+            'conversation-merge',
+            'group-v1-migration',
+            'keychange',
+            'message-history-unsynced',
+            'profile-change',
+            'story',
+            'universal-timer-notification',
+            'verified-change'
+          )
+        ), shouldAffectPreview INTEGER
+        GENERATED ALWAYS AS (
+          type IS NULL
+          OR
+          type NOT IN (
+            'change-number-notification',
+            'contact-removed-notification',
+            'conversation-merge',
+            'group-v1-migration',
+            'keychange',
+            'message-history-unsynced',
+            'profile-change',
+            'story',
+            'universal-timer-notification',
+            'verified-change'
+          )
+        ), isUserInitiatedMessage INTEGER
+        GENERATED ALWAYS AS (
+          type IS NULL
+          OR
+          type NOT IN (
+            'change-number-notification',
+            'contact-removed-notification',
+            'conversation-merge',
+            'group-v1-migration',
+            'group-v2-change',
+            'keychange',
+            'message-history-unsynced',
+            'profile-change',
+            'story',
+            'universal-timer-notification',
+            'verified-change'
+          )
+        ), mentionsMe INTEGER NOT NULL DEFAULT 0, isGroupLeaveEvent INTEGER
+        GENERATED ALWAYS AS (
+          type IS 'group-v2-change' AND
+          json_array_length(json_extract(json, '$.groupV2Change.details')) IS 1 AND
+          json_extract(json, '$.groupV2Change.details[0].type') IS 'member-remove' AND
+          json_extract(json, '$.groupV2Change.from') IS NOT NULL AND
+          json_extract(json, '$.groupV2Change.from') IS json_extract(json, '$.groupV2Change.details[0].aci')
+        ), isGroupLeaveEventFromOther INTEGER
+        GENERATED ALWAYS AS (
+          isGroupLeaveEvent IS 1
+          AND
+          isChangeCreatedByUs IS 0
+        ), callId TEXT
+        GENERATED ALWAYS AS (
+          json_extract(json, '$.callId')
+        ))
+
+jobs
+CREATE TABLE jobs(
+        id TEXT PRIMARY KEY,
+        queueType TEXT STRING NOT NULL,
+        timestamp INTEGER NOT NULL,
+        data STRING TEXT
+      )
+
+reactions
+CREATE TABLE reactions(
+        conversationId STRING,
+        emoji STRING,
+        fromId STRING,
+        messageReceivedAt INTEGER,
+        targetAuthorAci STRING,
+        targetTimestamp INTEGER,
+        unread INTEGER
+      , messageId STRING)
+
+senderKeys
+CREATE TABLE senderKeys(
+        id TEXT PRIMARY KEY NOT NULL,
+        senderId TEXT NOT NULL,
+        distributionId TEXT NOT NULL,
+        data BLOB NOT NULL,
+        lastUpdatedDate NUMBER NOT NULL
+      )
+
+unprocessed
+CREATE TABLE unprocessed(
+        id STRING PRIMARY KEY ASC,
+        timestamp INTEGER,
+        version INTEGER,
+        attempts INTEGER,
+        envelope TEXT,
+        decrypted TEXT,
+        source TEXT,
+        serverTimestamp INTEGER,
+        sourceServiceId STRING
+      , serverGuid STRING NULL, sourceDevice INTEGER, receivedAtCounter INTEGER, urgent INTEGER, story INTEGER)
+
+sendLogPayloads
+CREATE TABLE sendLogPayloads(
+        id INTEGER PRIMARY KEY ASC,
+
+        timestamp INTEGER NOT NULL,
+        contentHint INTEGER NOT NULL,
+        proto BLOB NOT NULL
+      , urgent INTEGER, hasPniSignatureMessage INTEGER DEFAULT 0 NOT NULL)
+
+sendLogRecipients
+CREATE TABLE sendLogRecipients(
+        payloadId INTEGER NOT NULL,
+
+        recipientServiceId STRING NOT NULL,
+        deviceId INTEGER NOT NULL,
+
+        PRIMARY KEY (payloadId, recipientServiceId, deviceId),
+
+        CONSTRAINT sendLogRecipientsForeignKey
+          FOREIGN KEY (payloadId)
+          REFERENCES sendLogPayloads(id)
+          ON DELETE CASCADE
+      )
+
+sendLogMessageIds
+CREATE TABLE sendLogMessageIds(
+        payloadId INTEGER NOT NULL,
+
+        messageId STRING NOT NULL,
+
+        PRIMARY KEY (payloadId, messageId),
+
+        CONSTRAINT sendLogMessageIdsForeignKey
+          FOREIGN KEY (payloadId)
+          REFERENCES sendLogPayloads(id)
+          ON DELETE CASCADE
+      )
+
+preKeys
+CREATE TABLE preKeys(
+        id STRING PRIMARY KEY ASC,
+        json TEXT
+      , ourServiceId NUMBER
+        GENERATED ALWAYS AS (json_extract(json, '$.ourServiceId')))
+
+signedPreKeys
+CREATE TABLE signedPreKeys(
+        id STRING PRIMARY KEY ASC,
+        json TEXT
+      , ourServiceId NUMBER
+        GENERATED ALWAYS AS (json_extract(json, '$.ourServiceId')))
+
+badges
+CREATE TABLE badges(
+        id TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        name TEXT NOT NULL,
+        descriptionTemplate TEXT NOT NULL
+      )
+
+badgeImageFiles
+CREATE TABLE badgeImageFiles(
+        badgeId TEXT REFERENCES badges(id)
+          ON DELETE CASCADE
+          ON UPDATE CASCADE,
+        'order' INTEGER NOT NULL,
+        url TEXT NOT NULL,
+        localPath TEXT,
+        theme TEXT NOT NULL
+      )
+
+storyReads
+CREATE TABLE storyReads (
+        authorId STRING NOT NULL,
+        conversationId STRING NOT NULL,
+        storyId STRING NOT NULL,
+        storyReadDate NUMBER NOT NULL,
+
+        PRIMARY KEY (authorId, storyId)
+      )
+
+storyDistributions
+CREATE TABLE storyDistributions(
+        id STRING PRIMARY KEY NOT NULL,
+        name TEXT,
+
+        senderKeyInfoJson STRING
+      , deletedAtTimestamp INTEGER, allowsReplies INTEGER, isBlockList INTEGER, storageID STRING, storageVersion INTEGER, storageUnknownFields BLOB, storageNeedsSync INTEGER)
+
+storyDistributionMembers
+CREATE TABLE storyDistributionMembers(
+        listId STRING NOT NULL REFERENCES storyDistributions(id)
+          ON DELETE CASCADE
+          ON UPDATE CASCADE,
+        serviceId STRING NOT NULL,
+
+        PRIMARY KEY (listId, serviceId)
+      )
+
+uninstalled_sticker_packs
+CREATE TABLE uninstalled_sticker_packs (
+        id STRING NOT NULL PRIMARY KEY,
+        uninstalledAt NUMBER NOT NULL,
+        storageID STRING,
+        storageVersion NUMBER,
+        storageUnknownFields BLOB,
+        storageNeedsSync INTEGER NOT NULL
+      )
+
+groupCallRingCancellations
+CREATE TABLE groupCallRingCancellations(
+        ringId INTEGER PRIMARY KEY,
+        createdAt INTEGER NOT NULL
+      )
+
+messages_fts_data
+CREATE TABLE 'messages_fts_data'(id INTEGER PRIMARY KEY, block BLOB)
+
+messages_fts_idx
+CREATE TABLE 'messages_fts_idx'(segid, term, pgno, PRIMARY KEY(segid, term)) WITHOUT ROWID
+
+messages_fts_content
+CREATE TABLE 'messages_fts_content'(id INTEGER PRIMARY KEY, c0)
+
+messages_fts_docsize
+CREATE TABLE 'messages_fts_docsize'(id INTEGER PRIMARY KEY, sz BLOB)
+
+messages_fts_config
+CREATE TABLE 'messages_fts_config'(k PRIMARY KEY, v) WITHOUT ROWID
+
+edited_messages
+CREATE TABLE edited_messages(
+        messageId STRING REFERENCES messages(id)
+          ON DELETE CASCADE,
+        sentAt INTEGER,
+        readStatus INTEGER
+      , conversationId STRING)
+
+mentions
+CREATE TABLE mentions (
+        messageId REFERENCES messages(id) ON DELETE CASCADE,
+        mentionAci STRING,
+        start INTEGER,
+        length INTEGER
+      )
+
+kyberPreKeys
+CREATE TABLE kyberPreKeys(
+        id STRING PRIMARY KEY NOT NULL,
+        json TEXT NOT NULL, ourServiceId NUMBER
+        GENERATED ALWAYS AS (json_extract(json, '$.ourServiceId')))
+
+callsHistory
+CREATE TABLE callsHistory (
+        callId TEXT PRIMARY KEY,
+        peerId TEXT NOT NULL, -- conversation id (legacy) | uuid | groupId | roomId
+        ringerId TEXT DEFAULT NULL, -- ringer uuid
+        mode TEXT NOT NULL, -- enum "Direct" | "Group"
+        type TEXT NOT NULL, -- enum "Audio" | "Video" | "Group"
+        direction TEXT NOT NULL, -- enum "Incoming" | "Outgoing
+        -- Direct: enum "Pending" | "Missed" | "Accepted" | "Deleted"
+        -- Group: enum "GenericGroupCall" | "OutgoingRing" | "Ringing" | "Joined" | "Missed" | "Declined" | "Accepted" | "Deleted"
+        status TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        UNIQUE (callId, peerId) ON CONFLICT FAIL
+      )
+
+messages_fts
+CREATE VIRTUAL TABLE messages_fts USING fts5(
+        body,
+        tokenize = 'signal_tokenizer'
+      )
+
